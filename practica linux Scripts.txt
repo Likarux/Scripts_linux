@@ -1,0 +1,208 @@
+Los comandos iptables los hice con sudo como se ve abajo pero al hacerlo como root no necesitaria el sudo delante.
+Los de la maquina de simulacion son exactamente los mismos que estos dos primeros.
+
+sudo nano /usr/local/bin/bloqueo_internet.sh     
+
+#!/bin/bash
+sudo iptables -A OUTPUT -s 192.168.18.20 -j DROP
+sudo iptables -A INPUT -d 192.168.18.20 -j DROP
+
+
+sudo nano /usr/local/bin/desbloqueo_internet.sh
+
+#!/bin/bash
+sudo iptables -D OUTPUT -s 192.168.18.20 -j DROP
+sudo iptables -D INPUT -d 192.168.18.10 -j DROP
+
+
+hacer ejecutables los scripts
+sudo chmod +x /usr/local/bin/bloqueo_internet.sh
+sudo chmod +x /usr/local/bin/desbloqueo_internet.sh
+
+
+editar crontab
+
+sudo crontab -e
+
+# Bloquear Internet a las 15:30
+30 15 * * * /usr/local/bin/block_internet.sh
+
+# Desbloquear Internet a las 08:00
+0 8 * * * /usr/local/bin/unblock_internet.sh
+
+comprobar los scripts 
+sudo /usr/local/bin/bloqueo_internet.sh
+sudo /usr/local/bin/desbloqueo_internet.sh
+
+
+verificar las reglas iptables 
+
+sudo iptables -L
+
+--------------------------------------------------------------------------
+
+https://www.pexels.com/es-es/download/video/4865380/
+
+
+
+
+programar la descarga
+
+sudo nano /usr/local/bin/descarga_archivo.sh
+
+
+#!/bin/bash
+wget -O /home/likarus/Escritorio/Descarga/video.mp4  "https://www.pexels.com/es-es/download/video/4865380/"
+
+
+sudo chmod +x /usr/local/bin/descarga_archivo.sh
+
+sudo crontab -e
+
+0 13 * * * /usr/local/bin/descarga_archivo.sh
+
+
+
+-------------------------------------------------------------------------
+monitorear la red en la descarga intento numero 3 y tampoco funciono.
+
+
+sudo nano /usr/local/bin/monitorear.sh
+
+
+#!/bin/bash
+iptables -A INPUT -s 192.168.18.20 -j LOG --log-prefix "FROM 192.168.18.20: " --log-level 4
+iptables -A OUTPUT -d 192.168.18.20 -j LOG --log-prefix "TO 192.168.18.20: " --log-level 4
+
+
+sudo nano /usr/local/bin/stop_monitorear.sh
+
+#!/bin/bash
+iptables -D INPUT -s 192.168.18.20 -j LOG --log-prefix "FROM 192.168.18.20: " --log-level 4
+iptables -D OUTPUT -d 192.168.18.20 -j LOG --log-prefix "TO 192.168.18.20: " --log-level 4
+
+
+sudo chmod +x /usr/local/bin/monitorear.sh
+sudo chmod +x /usr/local/bin/stop_monitorear.sh
+
+
+sudo crontab -e
+
+0 13 * * * /usr/local/bin/monitorear.sh
+
+10 13 * * * /usr/local/bin/stop_monitorear.sh
+
+
+vamos a redirigir los iptables a un archivo especifico
+
+
+sudo nano /etc/rsyslog.d/iptables.conf
+
+Agrega las siguientes líneas para redirigir los logs de iptables a un archivo:
+
+
+:msg,contains,"FROM 192.168.18.20: " /var/log/iptables_from_192.168.18.20.log
+:msg,contains,"TO 192.168.18.20: " /var/log/iptables_to_192.168.18.20.log
+
+hay que  reiniciar el servicio rsyslog para aplicar los cambios:
+
+
+sudo systemctl restart rsyslog
+
+
+
+Crear un script para renombrar los logs con la extensión .txt:
+sudo nano /usr/local/bin/rename_logs.sh
+
+#!/bin/bash
+mv /var/log/iptables_from_192.168.18.20.log /var/log/iptables_from_192.168.18.20_$(date +\%Y\%m\%d).txt
+mv /var/log/iptables_to_192.168.18.20.log /var/log/iptables_to_192.168.18.20_$(date +\%Y\%m\%d).txt
+
+
+Hacer ejecutable el script de renombrado de logs:
+
+sudo chmod +x /usr/local/bin/rename_logs.sh
+
+sudo crontab -e
+
+# Renombrar logs a las 13:11
+11 13 * * * /usr/local/bin/rename_logs.sh
+
+
+
+
+
+
+
+sudo /usr/local/bin/start_monitoring.sh
+sudo /usr/local/bin/stop_monitoring.sh
+sudo /usr/local/bin/rename_logs.sh
+
+
+
+
+Verificar que los logs se generen y se renombren correctamente:
+
+ls /var/log/iptables_from_192.168.18.20_*.txt
+ls /var/log/iptables_to_192.168.18.20_*.txt
+
+Como el otro scrip no me funciono probe con este  en otro archivo
+
+#!/bin/bash
+sudo timeout 10 script -q -c "nload -u kbit -i 1024 -o 1024" /home/likarus/Descarga/monitoreo.txt
+
+ instale nload para que funcionara con esto
+
+sudo apt-get update
+sudo apt-get install nload bsdutils 
+ 
+pero tampoco me funciono.
+
+--------------------------------------------------------------
+apaga el equipo a la 15:31
+
+crontab -e
+
+31 15 * * * /sbin/shutdown -h now
+
+-------------------------------------------------
+Este lo busque pero no llegue a implantarlo porque no me dio tiempo.
+envio de txt por email 
+
+Si no lo has hecho ya, instala mailutils u otro cliente de correo electrónico que prefieras. En sistemas basados en Debian/Ubuntu, puedes instalar mailutils con el siguiente comando:
+
+
+sudo apt-get install mailutils
+
+
+crontab -e
+
+20 15 * * * cat /ruta/a/tu/archivo.txt | mail -s "prueba de correo" alfosea@gmail.com
+
+
+guarda y cierra  control x y luego y.
+
+
+hacer apgado  lo primero es
+
+sudo nano /usr/local/bin/shutdown.sh
+
+#!/bin/bash
+sudo shutdown -h now
+
+chmod +x /usr/local/bin/shutdown.sh
+ si no me deja darle los permisos con sudo -i
+ me convierto en root y ya se puede.
+ 
+ 
+crontab -e
+
+
+
+30 15 * * * /usr/local/bin/shutdown.sh
+
+
+
+
+
+
